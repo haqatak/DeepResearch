@@ -1,25 +1,5 @@
 #!/bin/bash
 
-export TORCHDYNAMO_VERBOSE=1
-export TORCHDYNAMO_DISABLE=1
-export NCCL_IB_TC=16
-export NCCL_IB_SL=5
-export NCCL_IB_GID_INDEX=3
-export NCCL_SOCKET_IFNAME=eth
-export NCCL_DEBUG=INFO
-export NCCL_IB_HCA=mlx5
-export NCCL_IB_TIMEOUT=22
-export NCCL_IB_QPS_PER_CONNECTION=8
-export NCCL_MIN_NCHANNELS=4
-export NCCL_NET_PLUGIN=none
-export GLOO_SOCKET_IFNAME=eth0
-export QWEN_DOC_PARSER_USE_IDP=false
-export QWEN_IDP_ENABLE_CSI=false
-export NLP_WEB_SEARCH_ONLY_CACHE=false
-export NLP_WEB_SEARCH_ENABLE_READPAGE=false
-export NLP_WEB_SEARCH_ENABLE_SFILTER=false
-export QWEN_SEARCH_ENABLE_CSI=false
-export SPECIAL_CODE_MODE=false
 export PYTHONDONTWRITEBYTECODE=1
 
 ##############hyperparams################
@@ -70,84 +50,30 @@ export IDP_KEY_SECRET=your_idp_key_secret
 ### 1. start server           ###
 ######################################
 
-echo "Starting VLLM servers..."
-CUDA_VISIBLE_DEVICES=0 vllm serve $MODEL_PATH --host 0.0.0.0 --port 6001 --disable-log-requests &
-CUDA_VISIBLE_DEVICES=1 vllm serve $MODEL_PATH --host 0.0.0.0 --port 6002 --disable-log-requests &
-CUDA_VISIBLE_DEVICES=2 vllm serve $MODEL_PATH --host 0.0.0.0 --port 6003 --disable-log-requests &
-CUDA_VISIBLE_DEVICES=3 vllm serve $MODEL_PATH --host 0.0.0.0 --port 6004 --disable-log-requests &
-CUDA_VISIBLE_DEVICES=4 vllm serve $MODEL_PATH --host 0.0.0.0 --port 6005 --disable-log-requests &
-CUDA_VISIBLE_DEVICES=5 vllm serve $MODEL_PATH --host 0.0.0.0 --port 6006 --disable-log-requests &
-CUDA_VISIBLE_DEVICES=6 vllm serve $MODEL_PATH --host 0.0.0.0 --port 6007 --disable-log-requests &
-CUDA_VISIBLE_DEVICES=7 vllm serve $MODEL_PATH --host 0.0.0.0 --port 6008 --disable-log-requests &
+echo "Starting VLLM server..."
+vllm serve $MODEL_PATH --host 0.0.0.0 --port 8000 --device mps --disable-log-requests &
 
 #######################################################
 ### 2. Waiting for the server port to be ready  ###
 ######################################################
 
-timeout=6000
+timeout=600
 start_time=$(date +%s)
 
-main_ports=(6001 6002 6003 6004 6005 6006 6007 6008)
-echo "Mode: All ports used as main model"
+echo "Waiting for server to start..."
 
-declare -A server_status
-for port in "${main_ports[@]}"; do
-    server_status[$port]=false
-done
-
-echo "Waiting for servers to start..."
-
-while true; do
-    all_ready=true
-    
-    for port in "${main_ports[@]}"; do
-        if [ "${server_status[$port]}" = "false" ]; then
-            if curl -s -f http://localhost:$port/v1/models > /dev/null 2>&1; then
-                echo "Main model server (port $port) is ready!"
-                server_status[$port]=true
-            else
-                all_ready=false
-            fi
-        fi
-    done
-    
-    if [ "$all_ready" = "true" ]; then
-        echo "All servers are ready for inference!"
-        break
-    fi
-    
+while ! curl -s -f http://localhost:8000/v1/models > /dev/null 2>&1; do
     current_time=$(date +%s)
     elapsed=$((current_time - start_time))
     if [ $elapsed -gt $timeout ]; then
         echo -e "\nError: Server startup timeout after ${timeout} seconds"
-        
-        for port in "${main_ports[@]}"; do
-            if [ "${server_status[$port]}" = "false" ]; then
-                echo "Main model server (port $port) failed to start"
-            fi
-        done
-
-        
         exit 1
     fi
-    
-    printf 'Waiting for servers to start .....'
+    printf 'Waiting for server to start .....'
     sleep 10
 done
 
-failed_servers=()
-for port in "${main_ports[@]}"; do
-    if [ "${server_status[$port]}" = "false" ]; then
-        failed_servers+=($port)
-    fi
-done
-
-if [ ${#failed_servers[@]} -gt 0 ]; then
-    echo "Error: The following servers failed to start: ${failed_servers[*]}"
-    exit 1
-else
-    echo "All required servers are running successfully!"
-fi
+echo "Server is ready for inference!"
 
 #####################################
 ### 3. start infer               ####
