@@ -114,11 +114,11 @@ You need to modify the following in the file [inference/react_agent.py](https://
 
 ## Running on Apple Silicon
 
-This project includes support for running on Apple Silicon (M1/M2/M3) Macs, leveraging Apple's `mlx` framework for accelerated performance.
+This project runs on Apple Silicon (M1/M2/M3) Macs by leveraging PyTorch's built-in Metal Performance Shaders (MPS) for hardware acceleration.
 
 ### Installation on Apple Silicon
 
-The `requirements.txt` file includes the `mlx` package, which is designed for Apple Silicon. You can follow the standard installation instructions, and the correct dependencies should be installed automatically.
+The project uses a standard PyTorch installation. When run on Apple Silicon, PyTorch automatically uses the MPS backend for accelerated computations on the GPU.
 
 1.  **Create a Conda environment (recommended):**
     ```bash
@@ -130,10 +130,9 @@ The `requirements.txt` file includes the `mlx` package, which is designed for Ap
     ```bash
     pip install -r requirements.txt
     ```
+    During installation, platform-specific packages that are incompatible with macOS (such as `triton`, `vllm`, and `xformers`) will be automatically skipped.
 
-    The `triton` package, which is not compatible with macOS, will be automatically skipped.
-
-With these steps, you should be able to run the model on your Apple Silicon Mac and benefit from the hardware acceleration provided by the `mlx` framework.
+With these steps, you can run the model on your Apple Silicon Mac and benefit from the hardware acceleration provided by PyTorch's MPS backend.
 
 ## Running with Ollama and LM Studio on macOS
 

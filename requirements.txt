@@ -167,7 +167,7 @@ watchfiles==1.1.0
 websocket-client==1.8.0
 websockets==15.0.1
 wheel==0.45.1
-xformers==0.0.31
+xformers==0.0.31 ; sys_platform == 'linux'
 xgrammar==0.1.21
 xlsxwriter==3.2.8
 yarl==1.20.1
