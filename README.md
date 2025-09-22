@@ -114,11 +114,11 @@ You need to modify the following in the file [inference/react_agent.py](https://
 
 ## Running on Apple Silicon
 
-This project includes support for running on Apple Silicon (M1/M2/M3) Macs, leveraging Apple's `mlx` framework for accelerated performance.
+This project runs on Apple Silicon (M1/M2/M3) Macs by leveraging PyTorch's built-in Metal Performance Shaders (MPS) for hardware acceleration.
 
 ### Installation on Apple Silicon
 
-The `requirements.txt` file includes the `mlx` package, which is designed for Apple Silicon. You can follow the standard installation instructions, and the correct dependencies should be installed automatically.
+The project uses a standard PyTorch installation. When run on Apple Silicon, PyTorch automatically uses the MPS backend for accelerated computations on the GPU.
 
 1.  **Create a Conda environment (recommended):**
     ```bash
@@ -130,10 +130,58 @@ The `requirements.txt` file includes the `mlx` package, which is designed for Ap
     ```bash
     pip install -r requirements.txt
     ```
+    During installation, platform-specific packages that are incompatible with macOS (such as `triton`, `vllm`, and `xformers`) will be automatically skipped.
 
-    The `triton` package, which is not compatible with macOS, will be automatically skipped.
+With these steps, you can run the model on your Apple Silicon Mac and benefit from the hardware acceleration provided by PyTorch's MPS backend.
 
-With these steps, you should be able to run the model on your Apple Silicon Mac and benefit from the hardware acceleration provided by the `mlx` framework.
+## Running with Ollama and LM Studio on macOS
+
+For macOS users, you can also run the Tongyi DeepResearch model locally using tools like Ollama and LM Studio. These tools provide an easy way to download and interact with the model.
+
+### Prerequisites
+
+First, you need to download the GGUF version of the model. You can find it on HuggingFace:
+
+*   [gabriellarson/Tongyi-DeepResearch-30B-A3B-GGUF](https://huggingface.co/gabriellarson/Tongyi-DeepResearch-30B-A3B-GGUF)
+
+Download one of the `.gguf` files from the "Files and versions" tab. The file you choose will depend on the level of quantization you want (e.g., `q4_K_M` for a balance of quality and performance).
+
+### Running with Ollama
+
+1.  **Install Ollama:** If you haven't already, download and install Ollama from the [official website](https://ollama.com/).
+
+2.  **Create a `Modelfile`:** Create a file named `Modelfile` (no extension) in a directory of your choice. Add the following line to the file, replacing `/path/to/your/model.gguf` with the actual path to the GGUF file you downloaded:
+
+    ```
+    FROM /path/to/your/model.gguf
+    ```
+
+3.  **Create the model in Ollama:** Open your terminal and run the following command to create the model in Ollama. You can replace `tongyi-deepresearch` with any name you prefer.
+
+    ```bash
+    ollama create tongyi-deepresearch -f /path/to/your/Modelfile
+    ```
+
+4.  **Run the model:** You can now run the model using the following command:
+
+    ```bash
+    ollama run tongyi-deepresearch
+    ```
+
+### Running with LM Studio
+
+1.  **Install LM Studio:** Download and install LM Studio from the [official website](https://lmstudio.ai/).
+
+2.  **Load the model:**
+    *   Open LM Studio.
+    *   Navigate to the "Models" tab (the folder icon on the left).
+    *   You can either search for `gabriellarson/Tongyi-DeepResearch-30B-A3B-GGUF` directly in LM Studio and download it from there, or you can import the GGUF file you downloaded manually.
+    *   To import manually, click the "Import" button and select the `.gguf` file from your computer.
+
+3.  **Start a chat session:**
+    *   Once the model is loaded, go to the "Chat" tab (the speech bubble icon).
+    *   Select "Tongyi-DeepResearch" from the model dropdown menu at the top.
+    *   You can now start a conversation with the model.
 
 ## Benchmark Evaluation
 
