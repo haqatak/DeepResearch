@@ -112,6 +112,29 @@ You need to modify the following in the file [inference/react_agent.py](https://
  - Change the model name to alibaba/tongyi-deepresearch-30b-a3b.
  - Adjust the content concatenation way as described in the comments on lines **88–90.**
 
+## Running on Apple Silicon
+
+This project includes support for running on Apple Silicon (M1/M2/M3) Macs, leveraging Apple's `mlx` framework for accelerated performance.
+
+### Installation on Apple Silicon
+
+The `requirements.txt` file includes the `mlx` package, which is designed for Apple Silicon. You can follow the standard installation instructions, and the correct dependencies should be installed automatically.
+
+1.  **Create a Conda environment (recommended):**
+    ```bash
+    conda create -n react_infer_env python=3.10.0
+    conda activate react_infer_env
+    ```
+
+2.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+    The `triton` package, which is not compatible with macOS, will be automatically skipped.
+
+With these steps, you should be able to run the model on your Apple Silicon Mac and benefit from the hardware acceleration provided by the `mlx` framework.
+
 ## Benchmark Evaluation
 
 We provide benchmark evaluation scripts for various datasets. Please refer to the [evaluation scripts](./evaluation/) directory for more details.
