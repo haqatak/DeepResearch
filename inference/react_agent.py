@@ -18,11 +18,11 @@ from .prompt import *
 import time
 import asyncio
 
-from tool_file import *
+from .tool_file import *
 # from tool_scholar import * # Disabled as it requires an API key
 # from tool_python import * # Disabled as it requires a sandbox endpoint
-from tool_search import *
-from tool_visit import *
+from .tool_search import *
+from .tool_visit import *
 
 OBS_START = '<tool_response>'
 OBS_END = '\n</tool_response>'
