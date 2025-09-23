@@ -110,7 +110,7 @@ if __name__ == "__main__":
     tasks_to_run_all = []
     per_rollout_task_counts = {i: 0 for i in range(1, roll_out_count + 1)}
     # Define ports
-    planning_ports = [8000]
+    planning_ports = [11434]
     # Round-robin state
     planning_rr_idx = 0
     summary_rr_idx = 0
