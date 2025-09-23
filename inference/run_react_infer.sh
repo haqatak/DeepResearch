@@ -3,11 +3,11 @@
 export PYTHONDONTWRITEBYTECODE=1
 
 ##############hyperparams################
-export MODEL_PATH=/your/model/path
+export OLLAMA_MODEL_NAME="huggingface.co/gabriellarson/Tongyi-DeepResearch-30B-A3B-GGUF"
 export DATASET=your_dataset_name
 export OUTPUT_PATH=/your/output/path
 export ROLLOUT_COUNT=3 # eval avg@3
-export TEMPERATURE=0.85 
+export TEMPERATURE=0.85
 export PRESENCE_PENALTY=1.1
 export MAX_WORKERS=30
 
@@ -46,42 +46,14 @@ export USE_IDP=False
 export IDP_KEY_ID=your_idp_key_id
 export IDP_KEY_SECRET=your_idp_key_secret
 
-######################################
-### 1. start server           ###
-######################################
-
-echo "Starting VLLM server..."
-vllm serve $MODEL_PATH --host 0.0.0.0 --port 8000 --device mps --disable-log-requests &
-
-#######################################################
-### 2. Waiting for the server port to be ready  ###
-######################################################
-
-timeout=600
-start_time=$(date +%s)
-
-echo "Waiting for server to start..."
-
-while ! curl -s -f http://localhost:8000/v1/models > /dev/null 2>&1; do
-    current_time=$(date +%s)
-    elapsed=$((current_time - start_time))
-    if [ $elapsed -gt $timeout ]; then
-        echo -e "\nError: Server startup timeout after ${timeout} seconds"
-        exit 1
-    fi
-    printf 'Waiting for server to start .....'
-    sleep 10
-done
-
-echo "Server is ready for inference!"
-
 #####################################
-### 3. start infer               ####
+### 1. start infer               ####
 #####################################
 
 echo "==== start infer... ===="
+echo "Please ensure the ollama server is running."
 
 
 cd "$( dirname -- "${BASH_SOURCE[0]}" )"
 
-python -u run_multi_react.py --dataset "$DATASET" --output "$OUTPUT_PATH" --max_workers $MAX_WORKERS --model $MODEL_PATH --temperature $TEMPERATURE --presence_penalty $PRESENCE_PENALTY --total_splits ${WORLD_SIZE:-1} --worker_split $((${RANK:-0} + 1)) --roll_out_count $ROLLOUT_COUNT
+python -u run_multi_react.py --dataset "$DATASET" --output "$OUTPUT_PATH" --max_workers $MAX_WORKERS --model "$OLLAMA_MODEL_NAME" --temperature $TEMPERATURE --presence_penalty $PRESENCE_PENALTY --total_splits ${WORLD_SIZE:-1} --worker_split $((${RANK:-0} + 1)) --roll_out_count $ROLLOUT_COUNT
