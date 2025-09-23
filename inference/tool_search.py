@@ -1,17 +1,18 @@
 from qwen_agent.tools.base import BaseTool, register_tool
-from duckduckgo_search import DDGS
-from typing import List, Union, Optional
+from playwright.sync_api import sync_playwright
+from bs4 import BeautifulSoup
+from typing import Union, Optional
 
 @register_tool("search", allow_overwrite=True)
 class Search(BaseTool):
     name = "search"
-    description = "Performs a web search using DuckDuckGo. Supply a 'query' string to get the top 10 search results."
+    description = "Performs a web search using DuckDuckGo and returns the top results."
     parameters = {
         "type": "object",
         "properties": {
             "query": {
                 "type": "string",
-                "description": "The search query string."
+                "description": "The search query."
             },
         },
         "required": ["query"],
@@ -19,26 +20,58 @@ class Search(BaseTool):
 
     def __init__(self, cfg: Optional[dict] = None):
         super().__init__(cfg)
-        self.ddgs = DDGS()
 
-    def _ddg_search(self, query: str, max_results: int = 10):
+    def _playwright_search(self, query: str, max_results: int = 5):
         """
-        Performs a search using DuckDuckGo and formats the results.
+        Performs a search on DuckDuckGo using Playwright and scrapes the results.
         """
         try:
-            results = self.ddgs.text(query, max_results=max_results)
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                page = browser.new_page()
+                # DuckDuckGo's HTML version is simpler to scrape
+                url = f"https://duckduckgo.com/html/?q={query}"
+                print(f"[Search Tool] Navigating to: {url}")
+                page.goto(url, timeout=60000)
+
+                html_content = page.content()
+                browser.close()
+
+            soup = BeautifulSoup(html_content, 'html.parser')
+            results = soup.find_all('div', class_='result')
+
             if not results:
                 return f"No results found for '{query}'."
 
             web_snippets = []
-            for i, result in enumerate(results):
-                snippet = f"{i + 1}. [{result['title']}]({result['href']})\n{result['body']}"
-                web_snippets.append(snippet)
+            for i, result in enumerate(results[:max_results]):
+                title_tag = result.find('a', class_='result__a')
+                snippet_tag = result.find('a', class_='result__snippet')
+
+                if title_tag and snippet_tag:
+                    title = title_tag.get_text(strip=True)
+                    link = title_tag['href']
+                    snippet_text = snippet_tag.get_text(strip=True)
+
+                    # The link from DDG HTML is a redirect, let's clean it.
+                    # e.g., /l/?kh=-1&uddg=https%3A%2F%2Fwww.alibaba.com%2F
+                    if link.startswith('/l/'):
+                        import urllib.parse
+                        parsed_url = urllib.parse.parse_qs(urllib.parse.urlparse(link).query)
+                        if 'uddg' in parsed_url:
+                            link = parsed_url['uddg'][0]
+
+                    snippet = f"{i + 1}. [{title}]({link})\n{snippet_text}"
+                    web_snippets.append(snippet)
+
+            if not web_snippets:
+                return f"No results with snippets found for '{query}'."
 
             content = f"Search for '{query}' found {len(web_snippets)} results:\n\n" + "\n\n".join(web_snippets)
             return content
         except Exception as e:
-            return f"An error occurred during the search: {e}"
+            print(f"[Search Tool] An exception occurred: {e}")
+            return f"An error occurred during the search with Playwright: {e}"
 
     def call(self, params: Union[str, dict], **kwargs) -> str:
         if isinstance(params, str):
@@ -49,13 +82,11 @@ class Search(BaseTool):
             except KeyError:
                 return "[Search] Invalid request format: Input must be a JSON object containing a 'query' field"
 
+        # The agent sometimes sends a list. We'll just take the first item.
         if isinstance(query, list):
-            # Handle list of queries, though the new description encourages a single query.
-            # This provides backward compatibility with the agent's potential behavior.
-            responses = []
-            for q in query:
-                responses.append(self._ddg_search(q))
-            return "\n=======\n".join(responses)
-        else:
-            return self._ddg_search(query)
+            if not query:
+                return "[Search] Received an empty list of queries."
+            query = query[0]
+
+        return self._playwright_search(query)
 
