@@ -100,11 +100,25 @@ pip install -r requirements.txt
 ```bash
 bash run_react_infer.sh
 ```
+
+### 6. Running the Gradio UI
+
+For a more interactive experience, you can use the Gradio-powered user interface.
+
+1.  **Ensure `ollama` is running:** The UI connects to your local `ollama` server, so make sure the application is running.
+
+2.  **Start the UI:** Run the following command from the root of the project:
+    ```bash
+    bash run_app.sh
+    ```
+
+3.  **Open in your browser:** The script will output a local URL (usually `http://127.0.0.1:7860`). Open this URL in your web browser to use the agent.
+
 ---
 
 With these steps, you can fully prepare the environment, configure the dataset, and run the model. For more details, consult the inline comments in each script or open an issue.
 
-### 6. You can use OpenRouter's API to call our model
+### 7. You can use OpenRouter's API to call our model
 Tongyi-DeepResearch-30B-A3B is now available at [OpenRouter](https://openrouter.ai/alibaba/tongyi-deepresearch-30b-a3b). You can run the inference without any GPUs.
 
 You need to modify the following in the file [inference/react_agent.py](https://github.com/Alibaba-NLP/DeepResearch/blob/main/inference/react_agent.py):
