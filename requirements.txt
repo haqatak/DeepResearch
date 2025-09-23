@@ -17,6 +17,7 @@ APScheduler==3.11.0
 astor==0.8.1
 async-timeout==5.0.1
 attrs==25.3.0
+beautifulsoup4==4.12.3
 blake3==1.0.5
 cachetools==6.2.0
 cbor2==5.7.0
@@ -35,6 +36,7 @@ dill==0.4.0
 diskcache==5.6.3
 distro==1.9.0
 dnspython==2.8.0
+duckduckgo-search==5.3.1b1
 einops==0.8.1
 email-validator==2.3.0
 et_xmlfile==2.0.0
@@ -98,6 +100,7 @@ pdfminer.six==20250506
 pdfplumber==0.11.7
 pillow==11.3.0
 pip==25.2
+playwright==1.44.0
 prometheus_client==0.22.1
 prometheus-fastapi-instrumentator==7.1.0
 propcache==0.3.2

@@ -14,11 +14,11 @@ export MAX_WORKERS=30
 
 ## serper key for search&google scholar
 ## https://serper.dev/
-export SERPER_KEY_ID=""
+# export SERPER_KEY_ID="" # No longer needed, using DuckDuckGo
 
 ## jina key for read page
 ## https://jina.ai/
-export JINA_API_KEYS=""
+# export JINA_API_KEYS="" # No longer needed, using Playwright
 
 ## summary model api for page summary in visit tool
 ## https://platform.openai.com/
