@@ -27,10 +27,7 @@ class Search(BaseTool):
         """
         try:
             with sync_playwright() as p:
-                browser = p.chromium.launch(
-                    headless=True,
-                    executable_path="/Users/haq/Library/Caches/ms-playwright/chromium-1181/chrome-mac/Chromium.app/Contents/MacOS/Chromium"
-                )
+                browser = p.chromium.launch(headless=True)
                 page = browser.new_page()
                 # DuckDuckGo's HTML version is simpler to scrape
                 url = f"https://duckduckgo.com/html/?q={query}"
