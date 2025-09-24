@@ -2,8 +2,11 @@ import json
 import os
 import signal
 import threading
+import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Union
+from playwright.sync_api import sync_playwright
+from bs4 import BeautifulSoup
 from qwen_agent.tools.base import BaseTool, register_tool
 from .prompt import EXTRACTOR_PROMPT
 from openai import OpenAI
@@ -27,6 +30,21 @@ def truncate_to_tokens(text: str, max_tokens: int = 95000) -> str:
     
     truncated_tokens = tokens[:max_tokens]
     return encoding.decode(truncated_tokens)
+
+def _playwright_worker(url, queue):
+    """
+    This function runs in a separate process to avoid dependency conflicts.
+    """
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(url, timeout=60000)
+            html_content = page.content()
+            browser.close()
+        queue.put(html_content)
+    except Exception as e:
+        queue.put(f"[visit] Failed to read page with Playwright: {e}")
 
 OSS_JSON_FORMAT = """# Response Formats
 ## visit_content
@@ -72,39 +90,39 @@ class Visit(BaseTool):
 
     def _read_page_playwright(self, url: str) -> str:
         """
-        Read webpage content using Playwright.
-        
-        Args:
-            url: The URL to read
-
-        Returns:
-            str: The webpage content or an error message
+        Read webpage content using Playwright in a separate process
+        to avoid dependency conflicts.
         """
-        try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
-                page.goto(url, timeout=60000)
-                html_content = page.content()
-                browser.close()
+        queue = multiprocessing.Queue()
+        process = multiprocessing.Process(target=_playwright_worker, args=(url, queue))
+        process.start()
+        process.join(timeout=120)
 
-            soup = BeautifulSoup(html_content, 'html.parser')
-            # Remove script and style elements
-            for script_or_style in soup(["script", "style"]):
-                script_or_style.decompose()
+        if process.is_alive():
+            process.terminate()
+            process.join()
+            return "[visit] Failed to read page: Process timed out."
 
-            # Get text
-            text = soup.get_text()
-            # Break into lines and remove leading/trailing space on each
-            lines = (line.strip() for line in text.splitlines())
-            # Break multi-headlines into a line each
-            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-            # Drop blank lines
-            text = '\n'.join(chunk for chunk in chunks if chunk)
+        html_content = queue.get()
 
-            return text if text else "[visit] Empty content."
-        except Exception as e:
-            return f"[visit] Failed to read page with Playwright: {e}"
+        if html_content.startswith("[visit] Failed"):
+            return html_content
+
+        soup = BeautifulSoup(html_content, 'html.parser')
+        # Remove script and style elements
+        for script_or_style in soup(["script", "style"]):
+            script_or_style.decompose()
+
+        # Get text
+        text = soup.get_text()
+        # Break into lines and remove leading/trailing space on each
+        lines = (line.strip() for line in text.splitlines())
+        # Break multi-headlines into a line each
+        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        # Drop blank lines
+        text = '\n'.join(chunk for chunk in chunks if chunk)
+
+        return text if text else "[visit] Empty content."
 
     def _call_llm_summarizer(self, msgs, max_retries=2):
         api_key = os.environ.get("API_KEY")
