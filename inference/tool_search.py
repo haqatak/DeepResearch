@@ -2,6 +2,25 @@ from qwen_agent.tools.base import BaseTool, register_tool
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from typing import Union, Optional
+import multiprocessing
+import urllib.parse
+
+def _playwright_search_worker(query, queue):
+    """
+    This function runs in a separate process to avoid dependency conflicts.
+    """
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            encoded_query = urllib.parse.quote_plus(query)
+            url = f"https://duckduckgo.com/html/?q={encoded_query}"
+            page.goto(url, timeout=60000)
+            html_content = page.content()
+            browser.close()
+        queue.put(html_content)
+    except Exception as e:
+        queue.put(f"[search] Failed to read page with Playwright: {e}")
 
 @register_tool("search", allow_overwrite=True)
 class Search(BaseTool):
@@ -23,22 +42,26 @@ class Search(BaseTool):
 
     def _playwright_search(self, query: str, max_results: int = 5):
         """
-        Performs a search on DuckDuckGo using Playwright and scrapes the results.
+        Performs a search on DuckDuckGo using Playwright in a separate process
+        to avoid dependency conflicts.
         """
-        try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
-                page = browser.new_page()
-                # DuckDuckGo's HTML version is simpler to scrape
-                url = f"https://duckduckgo.com/html/?q={query}"
-                print(f"[Search Tool] Navigating to: {url}")
-                page.goto(url, timeout=60000)
+        queue = multiprocessing.Queue()
+        process = multiprocessing.Process(target=_playwright_search_worker, args=(query, queue))
+        process.start()
+        process.join(timeout=120)
 
-                html_content = page.content()
-                browser.close()
+        if process.is_alive():
+            process.terminate()
+            process.join()
+            return "[search] Failed to read page: Process timed out."
 
-            soup = BeautifulSoup(html_content, 'html.parser')
-            results = soup.find_all('div', class_='result')
+        html_content = queue.get()
+
+        if html_content.startswith("[search] Failed"):
+            return html_content
+
+        soup = BeautifulSoup(html_content, 'html.parser')
+        results = soup.find_all('div', class_='result')
 
             if not results:
                 return f"No results found for '{query}'."
