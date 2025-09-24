@@ -1,7 +1,6 @@
 import json
 import json5
 import os
-import warnings
 from typing import Dict, Iterator, List, Literal, Optional, Tuple, Union
 from qwen_agent.llm.schema import Message
 from qwen_agent.utils.utils import build_text_completion_prompt
@@ -117,13 +116,10 @@ class MultiTurnReactAgent(FnCallAgent):
         except Exception as e: 
             tokenizer = tiktoken.encoding_for_model(model)
         
-        # NOTE: The build_text_completion_prompt function is deprecated and will be removed in a future version.
-        # We are suppressing the warning for now, as there is no clear replacement for tiktoken tokenizers.
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            full_message = [Message(**x) for x in messages]
-            full_prompt = build_text_completion_prompt(full_message, allow_special=True)
-            return len(tokenizer.encode(full_prompt))
+        full_message = [Message(**x) for x in messages]
+        full_prompt = build_text_completion_prompt(full_message, allow_special=True)
+
+        return len(tokenizer.encode(full_prompt))
 
     def _run(self, data: str, model: str, **kwargs) -> List[List[Message]]:
         self.model=model

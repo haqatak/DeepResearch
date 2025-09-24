@@ -2,7 +2,6 @@ from qwen_agent.tools.base import BaseTool, register_tool
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from typing import Union, Optional
-import urllib.parse
 
 @register_tool("search", allow_overwrite=True)
 class Search(BaseTool):
@@ -31,8 +30,7 @@ class Search(BaseTool):
                 browser = p.chromium.launch(headless=True)
                 page = browser.new_page()
                 # DuckDuckGo's HTML version is simpler to scrape
-                encoded_query = urllib.parse.quote_plus(query)
-                url = f"https://duckduckgo.com/html/?q={encoded_query}"
+                url = f"https://duckduckgo.com/html/?q={query}"
                 print(f"[Search Tool] Navigating to: {url}")
                 page.goto(url, timeout=60000)
 
