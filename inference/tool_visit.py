@@ -82,7 +82,18 @@ class Visit(BaseTool):
         """
         try:
             with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
+                try:
+                    browser = p.chromium.launch(headless=True)
+                except Exception as e:
+                    if "Executable doesn't exist" in str(e):
+                        print("="*80)
+                        print("!! Playwright browser not found !!")
+                        print("Please run the following command to install the necessary browsers:")
+                        print("\n    playwright install\n")
+                        print("="*80)
+                        raise e
+                    else:
+                        raise e
                 page = browser.new_page()
                 page.goto(url, timeout=60000)
                 html_content = page.content()
